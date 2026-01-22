@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}Products{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="fw-bold">Products</h1>
+    <div>
+        {% if user_role == "Admin" %}
+        <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addProductModal">
+            <i class="bi bi-plus-circle"></i> Add New Product
+        </button>
+        {% else %}
+        <a href="/cart" class="btn btn-success me-2">
+            <i class="bi bi-cart"></i> View Cart
+        </a>
+        {% endif %}
+        <span class="badge bg-primary fs-6">{{ products|length }} Total</span>
+    </div>
+</div>
+
+<!-- Status Feedback -->
+{% if request.query_params.get("error") == "exists" %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle"></i> Product with this name already exists!
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% elif request.query_params.get("error") %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle"></i> Error: {{ request.query_params.get("error") }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+{% if request.query_params.get("success") %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle"></i> Operation successful!
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Status Filter Buttons -->
+<div class="mb-3">
+    <div class="btn-group" role="group" aria-label="Product status filter">
+        <a href="/products" class="btn btn-outline-secondary {% if not status_filter %}active{% endif %}">
+            <i class="bi bi-grid-3x3"></i> All Products
+        </a>
+        <a href="/products?status=Active"
+            class="btn btn-outline-success {% if status_filter == 'Active' %}active{% endif %}">
+            <i class="bi bi-check-circle"></i> Active Only
+        </a>
+        <a href="/products?status=Inactive"
+            class="btn btn-outline-secondary {% if status_filter == 'Inactive' %}active{% endif %}">
+            <i class="bi bi-x-circle"></i> Inactive Only
+        </a>
+    </div>
+    {% if status_filter %}
+    <small class="text-muted ms-2">Showing: <strong>{{ status_filter }}</strong> products</small>
+    {% endif %}
+</div>
+
+<div class="card card-custom">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Supplier</th>
+                    {% if user_role == "Admin" %}
+                    <th>Buying Price</th>
+                    {% endif %}
+                    <th>Selling Price</th>
+                    <th>Discount</th>
+                    <th>Stock</th>
+                    <th>Status</th>
+                    {% if user_role != "Admin" %}
+                    <th>Qty</th>
+                    {% endif %}
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>{{ product.id }}</td>
+                    <td><strong>{{ product.name }}</strong></td>
+                    <td>{{ product.category }}</td>
+                    <td><span class="text-muted">{{ product.supplier }}</span></td>
+                    {% if user_role == "Admin" %}
+                    <td>₹{{ product.cost_price }}</td>
+                    {% endif %}
+                    <td>₹{{ product.price }}</td>
+                    <td>{{ product.discount }}%</td>
+                    <td>{{ product.quantity }}</td>
+                    <td>
+                        {% if product.status == 'Active' %}
+                        <span class="badge bg-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    {% if user_role != "Admin" %}
+                    <td>
+                        <div class="input-group input-group-sm" style="width: 80px;">
+                            <button class="btn btn-outline-secondary" type="button"
+                                onclick="changeQty(this, -1)">-</button>
+                            <input type="number" class="form-control text-center px-0" value="1" min="1"
+                                max="{{ 10 if product.quantity > 10 else product.quantity }}"
+                                form="add-form-{{ product.id }}" name="quantity" readonly>
+                            <button class="btn btn-outline-secondary" type="button"
+                                onclick="changeQty(this, 1)">+</button>
+                        </div>
+                    </td>
+                    {% endif %}
+                    <td>
+                        {% if user_role == "Admin" %}
+                        <button class="btn btn-sm btn-outline-primary me-1 edit-product-btn" data-id="{{ product.id }}"
+                            data-name="{{ product.name|e }}" data-category="{{ product.category|e }}"
+                            data-supplier="{{ product.supplier|e }}" data-price="{{ product.price }}"
+                            data-cost-price="{{ product.cost_price }}" data-discount="{{ product.discount }}"
+                            data-quantity="{{ product.quantity }}" data-status="{{ product.status }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-btn" data-id="{{ product.id }}"
+                            data-name="{{ product.name|e }}" data-type="product" data-bs-toggle="modal"
+                            data-bs-target="#deleteConfirmModal">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        {% else %}
+                        <form action="/add-to-cart" method="POST" style="display: inline;"
+                            id="add-form-{{ product.id }}">
+                            <input type="hidden" name="product_id" value="{{ product.id }}">
+                            <!-- Quantity is linked via form attribute from the previous cell -->
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-cart-plus"></i> Add
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Product Modal -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Add New Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/products/add" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Product Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="">Select Category</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.name }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="supplier" class="form-label">Supplier</label>
+                        <select class="form-select" id="supplier" name="supplier" required>
+                            <option value="">Select Supplier</option>
+                            {% for sup in suppliers %}
+                            <option value="{{ sup.name }}">{{ sup.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="cost_price" class="form-label">Buying Price (₹)</label>
+                            <input type="number" step="0.01" class="form-control" id="cost_price" name="cost_price"
+                                value="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="price" class="form-label">Selling Price (₹)</label>
+                            <input type="number" step="0.01" class="form-control" id="price" name="price" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="discount" class="form-label">Discount (%)</label>
+                            <input type="number" class="form-control" id="discount" name="discount" value="0" min="0"
+                                max="100">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="quantity" class="form-label">Stock Quantity</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" value="0" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div class="modal fade" id="editProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil"></i> Edit Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/products/edit" method="POST" id="edit-product-form">
+                <input type="hidden" id="edit_id" name="product_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">Product Name</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_category" class="form-label">Category</label>
+                        <select class="form-select" id="edit_category" name="category" required>
+                            {% for cat in categories %}
+                            <option value="{{ cat.name }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_supplier" class="form-label">Supplier</label>
+                        <select class="form-select" id="edit_supplier" name="supplier" required>
+                            {% for sup in suppliers %}
+                            <option value="{{ sup.name }}">{{ sup.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_cost_price" class="form-label">Buying Price (₹)</label>
+                            <input type="number" step="0.01" class="form-control" id="edit_cost_price"
+                                name="cost_price">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_price" class="form-label">Selling Price (₹)</label>
+                            <input type="number" step="0.01" class="form-control" id="edit_price" name="price" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_discount" class="form-label">Discount (%)</label>
+                            <input type="number" class="form-control" id="edit_discount" name="discount" min="0"
+                                max="100">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_quantity" class="form-label">Stock Quantity</label>
+                            <input type="number" class="form-control" id="edit_quantity" name="quantity" min="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_status" class="form-label">Status</label>
+                            <select class="form-select" id="edit_status" name="status">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="update-product-btn">Update Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete <strong id="delete-item-name"></strong>? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="delete-confirm-form" method="POST" action="">
+                    <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function changeQty(btn, change) {
+        const input = btn.parentElement.querySelector('input');
+        let newVal = parseInt(input.value) + change;
+        const max = parseInt(input.getAttribute('max'));
+
+        if (newVal < 1) newVal = 1;
+        if (newVal > max) {
+            newVal = max;
+            alert('Cannot order more than ' + max + ' items at once.');
+        }
+
+        input.value = newVal;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log("Products page loaded");
+        const editModalEl = document.getElementById('editProductModal');
+        const editModal = new bootstrap.Modal(editModalEl);
+
+        // Event Delegation
+        document.body.addEventListener('click', function (e) {
+            // Edit Button
+            const editBtn = e.target.closest('.edit-product-btn');
+            if (editBtn) {
+                document.getElementById('edit_id').value = editBtn.dataset.id || '';
+                document.getElementById('edit_name').value = editBtn.dataset.name || '';
+                document.getElementById('edit_category').value = editBtn.dataset.category || '';
+                document.getElementById('edit_supplier').value = editBtn.dataset.supplier || '';
+                document.getElementById('edit_supplier').value = editBtn.dataset.supplier || '';
+                document.getElementById('edit_price').value = editBtn.dataset.price || '';
+                document.getElementById('edit_cost_price').value = editBtn.dataset.costPrice || '0';
+                document.getElementById('edit_discount').value = editBtn.dataset.discount || '0';
+                document.getElementById('edit_quantity').value = editBtn.dataset.quantity || '0';
+                document.getElementById('edit_status').value = editBtn.dataset.status || 'Active';
+                editModal.show();
+                return;
+            }
+
+            // Delete Button
+            const deleteBtn = e.target.closest('.delete-btn');
+            if (deleteBtn) {
+                const id = deleteBtn.dataset.id;
+                const name = deleteBtn.dataset.name;
+                const type = deleteBtn.dataset.type;
+
+                document.getElementById('delete-item-name').innerText = name;
+                // Set form action based on type
+                const form = document.getElementById('delete-confirm-form');
+                if (type === 'product') {
+                    form.action = '/products/delete/' + id;
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

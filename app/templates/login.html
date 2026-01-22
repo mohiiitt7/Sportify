@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block login_content %}
+<div class="vh-100 d-flex justify-content-center align-items-center" style="background-color: var(--sidebar-bg);">
+    <div class="login-card text-center">
+        <h1 class="fw-bold mb-2" style="color: var(--sidebar-bg);">Sportify</h1>
+        <p class="mb-4" style="color: #6c757d; font-size: 1.1rem;">Sports Store Management System</p>
+
+        {% if error %}
+        <div class="alert alert-danger" role="alert">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form action="/login" method="post">
+            <div class="mb-3">
+                <input type="text" class="form-control" id="email" name="email" required placeholder="User ID">
+            </div>
+            <div class="mb-4">
+                <div class="input-group">
+                    <input type="password" class="form-control border-end-0" id="password" name="password" required
+                        placeholder="Password" style="background-color: #f0f7ff;">
+                    <button class="btn border border-start-0" type="button" id="togglePassword"
+                        style="background-color: #f0f7ff; border-color: #d1e3f8; color: #6c757d;">
+                        <i class="bi bi-eye-slash" id="eyeIcon"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-login mb-3">LOGIN</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const togglePassword = document.querySelector('#togglePassword');
+    const password = document.querySelector('#password');
+    const eyeIcon = document.querySelector('#eyeIcon');
+
+    togglePassword.addEventListener('click', function (e) {
+        // password type toggle
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+
+        // eye icon toggle
+        eyeIcon.classList.toggle('bi-eye');
+        eyeIcon.classList.toggle('bi-eye-slash');
+    });
+</script>
+{% endblock %}

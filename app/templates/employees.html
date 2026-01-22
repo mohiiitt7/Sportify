@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Employees{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="fw-bold">Employees</h1>
+    <div>
+        {% if user_role == "Admin" %}
+        <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+            <i class="bi bi-person-plus"></i> Add New Employee
+        </button>
+        {% endif %}
+        <span class="badge bg-primary fs-6">{{ employees|length }} Total</span>
+    </div>
+</div>
+
+<!-- Status Feedback -->
+{% if request.query_params.get("success") %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle"></i> Operation successful!
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="card card-custom">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>EID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Contact</th>
+                    <th>Type</th>
+                    <th>Shift</th>
+                    <th>Role</th>
+                    {% if user_role == "Admin" %}
+                    <th>Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr>
+                    <td>{{ emp.eid }}</td>
+                    <td><strong>{{ emp.name }}</strong></td>
+                    <td>{{ emp.email }}</td>
+                    <td>{{ emp.contact }}</td>
+                    <td>{{ emp.emp_type }}</td>
+                    <td>{{ emp.work_shift }}</td>
+                    <td>
+                        {% if emp.usertype == 'Admin' %}
+                        <span class="badge bg-danger">Admin</span>
+                        {% else %}
+                        <span class="badge bg-info">Employee</span>
+                        {% endif %}
+                    </td>
+                    {% if user_role == "Admin" %}
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1 edit-employee-btn" data-eid="{{ emp.eid }}"
+                            data-name="{{ emp.name|e }}" data-email="{{ emp.email|e }}"
+                            data-contact="{{ emp.contact|e }}" data-emptype="{{ emp.emp_type|e }}"
+                            data-workshift="{{ emp.work_shift|e }}" data-usertype="{{ emp.usertype|e }}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal"
+                            data-bs-target="#deleteConfirmModal"
+                            onclick="setDeleteTarget('{{ emp.eid }}', '{{ emp.name|e }}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal fade" id="addEmployeeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-person-plus"></i> Add New Employee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/employees/add" method="POST">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="contact" class="form-label">Contact</label>
+                            <input type="tel" class="form-control" id="contact" name="contact">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="emp_type" class="form-label">Employee Type</label>
+                            <select class="form-select" id="emp_type" name="emp_type">
+                                <option value="Full time">Full time</option>
+                                <option value="Part time">Part time</option>
+                                <option value="Contract">Contract</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="work_shift" class="form-label">Work Shift</label>
+                            <select class="form-select" id="work_shift" name="work_shift">
+                                <option value="Morning">Morning</option>
+                                <option value="Evening">Evening</option>
+                                <option value="Night">Night</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="usertype" class="form-label">User Role</label>
+                        <select class="form-select" id="usertype" name="usertype">
+                            <option value="Employee">Employee</option>
+                            <option value="Admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Employee Modal -->
+<div class="modal fade" id="editEmployeeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil"></i> Edit Employee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/employees/edit" method="POST" id="edit-employee-form">
+                <input type="hidden" id="edit_eid" name="eid">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="edit_name" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="edit_email" name="email" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_contact" class="form-label">Contact</label>
+                            <input type="tel" class="form-control" id="edit_contact" name="contact">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_emp_type" class="form-label">Employee Type</label>
+                            <select class="form-select" id="edit_emp_type" name="emp_type">
+                                <option value="Full time">Full time</option>
+                                <option value="Part time">Part time</option>
+                                <option value="Contract">Contract</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_work_shift" class="form-label">Work Shift</label>
+                            <select class="form-select" id="edit_work_shift" name="work_shift">
+                                <option value="Morning">Morning</option>
+                                <option value="Evening">Evening</option>
+                                <option value="Night">Night</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_usertype" class="form-label">User Role</label>
+                            <select class="form-select" id="edit_usertype" name="usertype">
+                                <option value="Employee">Employee</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="update-employee-btn">Update Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete <strong id="delete-item-name"></strong>? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="delete-confirm-form" method="POST" action="">
+                    <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function setDeleteTarget(eid, name) {
+        document.getElementById('delete-item-name').innerText = name;
+        document.getElementById('delete-confirm-form').action = '/employees/delete/' + eid;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const editModalEl = document.getElementById('editEmployeeModal');
+        const editModal = new bootstrap.Modal(editModalEl);
+
+        document.body.addEventListener('click', function (e) {
+            const editBtn = e.target.closest('.edit-employee-btn');
+            if (editBtn) {
+                document.getElementById('edit_eid').value = editBtn.dataset.eid || '';
+                document.getElementById('edit_name').value = editBtn.dataset.name || '';
+                document.getElementById('edit_email').value = editBtn.dataset.email || '';
+                document.getElementById('edit_contact').value = editBtn.dataset.contact || '';
+                document.getElementById('edit_emp_type').value = editBtn.dataset.emptype || 'Full time';
+                document.getElementById('edit_work_shift').value = editBtn.dataset.workshift || 'Morning';
+                document.getElementById('edit_usertype').value = editBtn.dataset.usertype || 'Employee';
+                editModal.show();
+            }
+        });
+    });
+</script>
+{% endblock %}

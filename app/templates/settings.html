@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="fw-bold">Admin Settings</h1>
+    <span class="badge bg-danger fs-6">Admin Only</span>
+</div>
+
+{% if success %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle"></i> Settings updated successfully!
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<form action="/settings" method="POST" enctype="multipart/form-data">
+    <div class="row">
+        <!-- Billing Settings -->
+        <div class="col-md-6 mb-4">
+            <div class="card card-custom h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-4 text-primary"><i class="bi bi-gear"></i> Billing Settings</h5>
+                    <div class="mb-3">
+                        <label for="gst_percent" class="form-label fw-bold small">GST Percentage (%)</label>
+                        <input type="number" step="0.01" class="form-control" id="gst_percent" name="gst_percent"
+                            value="{{ settings.gst_percent }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="discount_percent" class="form-label fw-bold small">Discount Percentage (%)</label>
+                        <input type="number" step="0.01" class="form-control" id="discount_percent"
+                            name="discount_percent" value="{{ settings.discount_percent }}" required>
+                    </div>
+                    <div class="alert alert-info py-2 small mb-0">
+                        <i class="bi bi-info-circle"></i> Rates are applied globally to all bills.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shop Settings -->
+        <div class="col-md-6 mb-4">
+            <div class="card card-custom h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-4 text-success"><i class="bi bi-shop"></i> Store Details</h5>
+                    <div class="mb-3">
+                        <label for="shop_name" class="form-label fw-bold small">Store Name</label>
+                        <input type="text" class="form-control" id="shop_name" name="shop_name"
+                            value="{{ settings.shop_name }}" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="shop_contact" class="form-label fw-bold small">Contact Number</label>
+                            <input type="text" class="form-control" id="shop_contact" name="shop_contact"
+                                value="{{ settings.shop_contact }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="shop_email" class="form-label fw-bold small">Store Email</label>
+                            <input type="email" class="form-control" id="shop_email" name="shop_email"
+                                value="{{ settings.shop_email }}" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="shop_address" class="form-label fw-bold small">Store Address</label>
+                        <textarea class="form-control" id="shop_address" name="shop_address" rows="2"
+                            required>{{ settings.shop_address }}</textarea>
+                    </div>
+                    <div class="mb-0">
+                        <label for="shop_logo" class="form-label fw-bold small">Store Logo (Image)</label>
+                        <div class="d-flex align-items-center gap-3">
+                            {% if settings.shop_logo %}
+                            <img src="{{ settings.shop_logo }}" alt="Logo" class="img-thumbnail"
+                                style="height: 50px; width: 50px; object-fit: contain;">
+                            {% endif %}
+                            <input type="file" class="form-control form-control-sm" id="shop_logo" name="shop_logo"
+                                accept="image/*">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-custom mb-4">
+        <div class="card-body py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted small">
+                    <i class="bi bi-clock-history"></i> Last Updated: {{ settings.updated_at.strftime('%d-%m-%Y %I:%M
+                    %p')
+                    }}
+                </div>
+                <button type="submit" class="btn btn-primary px-5">
+                    <i class="bi bi-check2-circle"></i> Save All Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+</form>
+
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card card-custom">
+            <div class="card-body">
+                <h5 class="card-title mb-4"><i class="bi bi-calculator"></i> Calculation Preview</h5>
+                <div class="alert alert-light border mb-0">
+                    <i class="bi bi-lightbulb"></i>
+                    <strong>Example:</strong> For a ₹1000 product with current settings:
+                    <div class="row mt-3 text-center">
+                        <div class="col-md-3">
+                            <div class="small text-muted">Discount ({{ settings.discount_percent }}%)</div>
+                            <div class="fw-bold">₹{{ "%.2f"|format(1000 * (settings.discount_percent|float / 100)) }}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="small text-muted">Price After Disc.</div>
+                            <div class="fw-bold">₹{{ "%.2f"|format(1000 - 1000 * (settings.discount_percent|float /
+                                100))
+                                }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="small text-muted">GST ({{ settings.gst_percent }}%)</div>
+                            <div class="fw-bold text-danger">+ ₹{{ "%.2f"|format((1000 - 1000 *
+                                (settings.discount_percent|float / 100)) * (settings.gst_percent|float / 100)) }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="small text-muted">Final Amount</div>
+                            <div class="fw-bold text-primary fs-5">₹{{ "%.2f"|format((1000 - 1000 *
+                                (settings.discount_percent|float / 100)) * (1 + settings.gst_percent|float / 100)) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

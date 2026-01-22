@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="fw-bold">Dashboard</h1>
+
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card card-custom stat-card">
+            <h2>{{ total_products }}</h2>
+            <p>Total Products</p>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card card-custom stat-card" style="background: #1565C0;">
+            <h2>{{ total_suppliers }}</h2>
+            <p>Total Suppliers</p>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card card-custom stat-card" style="background: #0D47A1;">
+            <h2>{{ total_employees }}</h2>
+            <p>Total Employees</p>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card card-custom stat-card" style="background: #0b3d91;">
+            <h2>{{ total_categories }}</h2>
+            <p>Total Categories</p>
+        </div>
+    </div>
+
+    {% if user_role == 'Admin' %}
+    <div class="col-md-3 mb-4">
+        <div class="card card-custom stat-card" style="background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);">
+            <h2>₹{{ total_sales }}</h2>
+            <p>Total Revenue</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if low_stock_products %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="alert alert-warning border-warning shadow-sm" role="alert"
+            style="background-color: #fff3cd; color: #856404;">
+            <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-exclamation-triangle-fill fs-4 me-2"></i>
+                <h5 class="alert-heading fw-bold mb-0">Low Stock Warning</h5>
+            </div>
+            <p class="mb-0">The following products have low stock (5 or less). Please reorder soon.</p>
+            <hr>
+            <div class="row g-2">
+                {% for p in low_stock_products %}
+                <div class="col-md-4 col-lg-3">
+                    <div
+                        class="d-flex justify-content-between align-items-center bg-white p-2 rounded border border-warning">
+                        <span class="fw-bold text-truncate" title="{{ p.name }}">{{ p.name }}</span>
+                        <span class="badge bg-danger">{{ p.quantity }} left</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mt-4">
+    <!-- Daily Sales Chart -->
+    <div class="col-lg-6 mb-4">
+        <div class="card card-custom p-4 h-100">
+            <h5 class="fw-bold mb-4"><i class="bi bi-graph-up text-primary"></i> Daily Sales Trend</h5>
+            <canvas id="salesChart" width="400" height="250"></canvas>
+        </div>
+    </div>
+
+    <!-- Category Chart -->
+    <div class="col-lg-6 mb-4">
+        <div class="card card-custom p-4 h-100">
+            <h5 class="fw-bold mb-4"><i class="bi bi-pie-chart text-success"></i> Top Selling Sports Gear</h5>
+            <canvas id="categoryChart" width="400" height="250"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Orders Section -->
+    <div class="col-12 mb-4">
+        <div class="card card-custom p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0"><i class="bi bi-receipt-cutoff"></i> Recent Orders</h5>
+                <a href="/orders" class="btn btn-sm btn-outline-primary">View All Sales</a>
+            </div>
+
+            {% if recent_sales %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Bill ID</th>
+                            <th>Customer Name</th>
+                            <th>Date & Time</th>
+                            <th class="text-end">Net Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in recent_sales %}
+                        <tr>
+                            <td>
+                                <a href="/receipt/{{ sale.bill_id }}" class="badge bg-primary text-decoration-none p-2">
+                                    #{{ sale.bill_id }}
+                                </a>
+                            </td>
+                            <td><strong class="text-dark">{{ sale.customer_name }}</strong></td>
+                            <td><span class="text-muted small">{{ sale.bill_date.strftime('%d-%m-%Y %I:%M %p') }}</span>
+                            </td>
+                            <td class="text-end fw-bold text-success">₹{{ "%.2f"|format(sale.net_amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted text-center my-5">No recent orders found.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // 1. Daily Sales Trend (Line Chart)
+    const salesCtx = document.getElementById('salesChart').getContext('2d');
+    new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: {{ daily_sales_labels| tojson }},
+        datasets: [{
+            label: 'Revenue (₹)',
+            data: {{ daily_sales_values| tojson }},
+        borderColor: '#1976D2',
+        backgroundColor: 'rgba(25, 118, 210, 0.1)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointBackgroundColor: '#1976D2'
+            }]
+        },
+        options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, grid: { borderDash: [5, 5] } },
+            x: { grid: { display: false } }
+        }
+    }
+    });
+
+    // 2. Category Sales (Bar Chart)
+    // 2. Category Sales (Bar Chart)
+    const catCtx = document.getElementById('categoryChart');
+    const catValues = {{ category_values| tojson }};
+    const catLabels = {{ category_labels| tojson }};
+
+    if (catValues.length === 0) {
+        catCtx.parentElement.innerHTML = '<div class="d-flex flex-column justify-content-center align-items-center h-100 py-5"><i class="bi bi-bar-chart text-muted fs-1 mb-3"></i><p class="text-muted">No sales data found for categories.</p></div>';
+    } else {
+        new Chart(catCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: catLabels,
+                datasets: [{
+                    label: 'Items Sold',
+                    data: catValues,
+                    backgroundColor: [
+                        '#2e7d32', '#1976d2', '#ed6c02', '#9c27b0', '#26c6da', '#ffeb3b',
+                        '#d32f2f', '#7b1fa2', '#c2185b', '#512da8', '#303f9f', '#0288d1',
+                        '#0097a7', '#00796b', '#388e3c', '#689f38', '#afb42b', '#fbc02d',
+                        '#ffa000', '#f57c00', '#e64a19', '#5d4037', '#616161', '#455a64'
+                    ],
+                    borderRadius: 6,
+                    barThickness: 'flex',
+                    maxBarThickness: 50
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(33, 33, 33, 0.9)',
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function (context) {
+                                return context.dataset.label + ': ' + context.raw + ' units';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { borderDash: [5, 5], color: '#e0e0e0' },
+                        ticks: { stepSize: 1 }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+<div class="mt-4">
+    <h4 class="fw-bold mb-3">Quick Links</h4>
+    <div class="row">
+        <div class="col-md-6 col-lg-3 mb-3">
+            <a href="/products" class="btn quick-link-btn">
+                <i class="bi bi-box-seam"></i> Products
+            </a>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <a href="/billing" class="btn quick-link-btn">
+                <i class="bi bi-receipt"></i> Billing
+            </a>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <a href="/employees" class="btn quick-link-btn">
+                <i class="bi bi-person"></i> Employees
+            </a>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <a href="/suppliers" class="btn quick-link-btn">
+                <i class="bi bi-truck"></i> Suppliers
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
