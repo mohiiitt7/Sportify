@@ -53,58 +53,5 @@ sportifyy/
 │   └── templates/         # Jinja2 HTML templates
 ├── requirements.txt       # Project dependencies
 └── migrate_*.py           # Database migration scripts
-```
 
----
-
-## ⚙️ Installation & Setup
-
-1. **Clone the Repository:**
-   ```bash
-   git clone https://github.com/yourusername/sportifyy.git
-   cd sportifyy
-   ```
-
-2. **Create a Virtual Environment:**
-   ```bash
-   python -m venv .venv
-   # Windows:
-   .venv\Scripts\activate
-   # Linux/macOS:
-   source .venv/bin/activate
-   ```
-
-3. **Install Dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Database Configuration:**
-   Update your PostgreSQL credentials in `app/database.py` and run the migration scripts:
-   ```bash
-   python migrate_payment_integration.py
-   ```
-
-5. **Run the Application:**
-   ```bash
-   uvicorn app.main:app --reload
-   ```
-   *Access the app at: `http://localhost:8000`*
-
----
-
-## 🎯 Future Roadmap
-
-- **Dynamic QR Generation:** Feature to generate per-bill UPI QR codes.
-- **Cloud Integration:** Deploying the system to AWS or Google Cloud.
-- **WhatsApp API:** Sending digital receipts directly to customers' phone numbers.
-- **Export Reports:** One-click export of sales reports to Excel or PDF.
-
----
-
-## 📄 License
-This project is licensed under the MIT License.
-
----
-
-**Developed with ❤️ by Mohit**
+**Developed by Mohit**
